@@ -27,16 +27,14 @@ public class StaticFileResourceHandler extends SimpleChannelInboundHandler<FullH
         // 取出 request uri 对应调用的 controller 和 method
         URI uri = URI.create(httpRequest.uri());
         // uri path
-        String requestPath = uri.getPath();
+        String requirePath = uri.getPath();
         // web socket 地址的话
-        if (requestPath.equals(applicationProperties.s("server.webSocket"))) {
+        if (requirePath.equals(applicationProperties.s("server.webSocket"))) {
             ctx.fireChannelRead(httpRequest.retain());
             return;
         }
-        // 目录加上 index.html
-        requestPath = requestPath.substring(requestPath.length() - 1).equals("/") ? requestPath + "index.html" : requestPath;
         // resource/public
-        InputStream ins = getClass().getResourceAsStream("/public" + requestPath);
+        InputStream ins = getClass().getResourceAsStream("/public" + requirePath);
         // 找不到文件的话
         if (ins == null) {
             ctx.fireChannelRead(httpRequest.retain());
@@ -58,7 +56,7 @@ public class StaticFileResourceHandler extends SimpleChannelInboundHandler<FullH
         if (HttpUtil.isKeepAlive(httpRequest)) {
         	    headers.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
         }
-        headers.set(HttpHeaderNames.CONTENT_TYPE, contentType(requestPath.substring(requestPath.lastIndexOf(".") + 1)));
+        headers.set(HttpHeaderNames.CONTENT_TYPE, contentType(requirePath.substring(requirePath.lastIndexOf(".") + 1)));
         // headers.set(HttpHeaderNames.SERVER, "Netty 1.1");
         headers.set(HttpHeaderNames.CONTENT_LENGTH, buf.readableBytes());
         ctx.write(httpResponse);

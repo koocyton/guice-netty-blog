@@ -33,7 +33,7 @@ public class KTApplication {
             bindDataSourceProviderType(HikariDataSourceProvider.class);
             // bindDataSourceProviderType(DruidDataSourceProvider.class);
             bindTransactionFactoryType(JdbcTransactionFactory.class);
-            addMapperClasses("com.doopp.gauss.common.dao");
+            addMapperClass(UserDao.class);
             Names.bindProperties(binder(), new ApplicationProperties());
         }
     }

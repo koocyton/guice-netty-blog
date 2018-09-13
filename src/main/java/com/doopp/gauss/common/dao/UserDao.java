@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.*;
 
 import java.util.List;
 
-public interface UserDao {
+public interface UserDao extends BaseDao {
 
     @Select("SELECT * FROM `user` WHERE account=#{account,jdbcType=VARCHAR} LIMIT 1")
     User fetchByAccount(String account);
@@ -27,12 +27,4 @@ public interface UserDao {
 
     @Update("UPDATE `user` SET `account`=#{account}, `password`=#{password}, `password_salt`=${password_salt} WHERE `id`=#{id,jdbcType=BIGINT}")
     void update(User user);
-
-    //    @SelectProvider(type = TestSqlProvider.class, method = "getSql")
-    //    @Options(useCache = true, flushCache = false, timeout = 10000)
-    //    @Results(value = {
-    //        @Result(id = true, property = "id", column = "test_id", javaType = String.class, jdbcType = JdbcType.VARCHAR),
-    //        @Result(property = "testText", column = "test_text", javaType = String.class, jdbcType = JdbcType.VARCHAR)
-    //    })
-    //    public TestBean get(@Param("id") String id);
 }

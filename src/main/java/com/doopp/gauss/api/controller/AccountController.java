@@ -17,9 +17,10 @@ public class AccountController {
     @Inject
     private AccountService accountService;
 
+
     public String loginPage(ModelMap modelMap) {
         modelMap.addAttribute("hello", "hello");
-        return "loginPage";
+        return "hello";
     }
 
     @ResponseBody
