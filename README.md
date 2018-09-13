@@ -18,7 +18,6 @@ freemarker ( 模板，用于页面调试 )
 通过 java -jar demo.jar you_config_path & 即可启动服务
 
 
-
 #### 完成进度
 ``` html
 Guice 整合 netty [OK]
