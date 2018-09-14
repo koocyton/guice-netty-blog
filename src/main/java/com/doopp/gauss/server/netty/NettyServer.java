@@ -3,8 +3,6 @@ package com.doopp.gauss.server.netty;
 import com.doopp.gauss.server.handler.Http1RequestHandler;
 import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.server.handler.HttpStaticFileServerHandler;
-import com.doopp.gauss.server.handler.StaticFileResourceHandler;
-import com.doopp.gauss.server.handler.WebSocketFrameHandler;
 import com.google.inject.Injector;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -66,15 +64,12 @@ public class NettyServer {
         }
     }
 
-    // http://blog.csdn.net/kkkloveyou/article/details/44656325
-    // http://blog.csdn.net/joeyon1985/article/details/53586004
+    // channelInitializer
     private ChannelInitializer channelInitializer() {
         return new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) throws Exception {
-
                 ChannelPipeline pipeline = ch.pipeline();
-
                 if (ch.localAddress().getPort() == applicationProperties.i("server.sslPort")) {
                     SSLContext sslContext = SSLContext.getInstance("TLS");
                     sslContext.init(getKeyManagers(), null, null);
@@ -82,12 +77,6 @@ public class NettyServer {
                     sslEngine.setUseClientMode(false);
                     ch.pipeline().addLast(new SslHandler(sslEngine));
                 }
-
-                // 设置30秒没有读到数据，则触发一个READER_IDLE事件。
-                // pipeline.addLast(new IdleStateHandler(30, 0, 0));
-
-                // 打印日志,可以看到websocket帧数据
-                // pipeline.addFirst(new LoggingHandler(LogLevel.INFO));
                 // HttpServerCodec：将请求和应答消息解码为HTTP消息
                 pipeline.addLast(new HttpServerCodec());
                 // HttpObjectAggregator：将HTTP消息的多个部分合成一条完整的HTTP消息
@@ -96,13 +85,8 @@ public class NettyServer {
                 pipeline.addLast(new ChunkedWriteHandler());
                 // static file
                 pipeline.addLast(injector.getInstance(HttpStaticFileServerHandler.class));
-                // pipeline.addLast(injector.getInstance(StaticFileResourceHandler.class));
                 // http request
                 pipeline.addLast(injector.getInstance(Http1RequestHandler.class));
-                // webSocket connect
-                // pipeline.addLast(new WebSocketServerCompressionHandler());
-                // pipeline.addLast(new WebSocketServerProtocolHandler(applicationProperties.s("server.webSocket"), null, true));
-                // pipeline.addLast(injector.getInstance(WebSocketFrameHandler.class));
             }
         };
     }

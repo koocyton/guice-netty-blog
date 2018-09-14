@@ -16,7 +16,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 
 public class Http1RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
-    private static Logger logger = LoggerFactory.getLogger(StaticFileResourceHandler.class);
+    private static Logger logger = LoggerFactory.getLogger(Http1RequestHandler.class);
 
     @Inject
     private Injector injector;

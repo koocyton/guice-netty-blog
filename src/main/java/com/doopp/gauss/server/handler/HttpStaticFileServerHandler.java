@@ -1,5 +1,6 @@
 package com.doopp.gauss.server.handler;
 
+import com.google.inject.Inject;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
@@ -40,7 +41,6 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
-import static io.netty.handler.codec.http.HttpMethod.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.http.HttpVersion.*;
 
@@ -92,9 +92,12 @@ import static io.netty.handler.codec.http.HttpVersion.*;
  */
 public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
+    @Inject
+    private MimetypesFileTypeMap mimetypesFileTypeMap;
+
     public static final String HTTP_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
     public static final String HTTP_DATE_GMT_TIMEZONE = "GMT";
-    public static final int HTTP_CACHE_SECONDS = 60;
+    public static final int HTTP_CACHE_SECONDS = 3600;
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
@@ -132,9 +135,10 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
 
         if (file.isDirectory()) {
             if (uri.endsWith("/")) {
-                sendListing(ctx, file, uri);
+                sendRedirect(ctx, uri + "index.html");
+                // sendListing(ctx, file, uri);
             } else {
-                sendRedirect(ctx, uri + '/');
+                sendRedirect(ctx, uri + "/index.html");
             }
             return;
         }
@@ -171,7 +175,7 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
 
         HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
         HttpUtil.setContentLength(response, fileLength);
-        setContentTypeHeader(response, file);
+        setContentTypeHeader(response, file, this.mimetypesFileTypeMap);
         setDateAndCacheHeaders(response, file);
         if (HttpUtil.isKeepAlive(request)) {
             response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
@@ -374,8 +378,8 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
      * @param response HTTP response
      * @param file     file to extract content type
      */
-    private static void setContentTypeHeader(HttpResponse response, File file) {
-        MimetypesFileTypeMap mimeTypesMap = new MimetypesFileTypeMap();
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, mimeTypesMap.getContentType(file.getPath()));
+    private static void setContentTypeHeader(HttpResponse response, File file, MimetypesFileTypeMap mimetypesFileTypeMap) {
+        // MimetypesFileTypeMap mimetypesFileTypeMap = new MimetypesFileTypeMap();
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, mimetypesFileTypeMap.getContentType(file.getPath()));
     }
 }

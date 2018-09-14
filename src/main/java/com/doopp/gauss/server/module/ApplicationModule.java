@@ -6,9 +6,12 @@ import com.doopp.gauss.common.util.IdWorker;
 import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.server.filter.SessionFilter;
 import com.google.inject.*;
+import com.google.inject.name.Named;
 import freemarker.template.*;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
+
+import javax.activation.MimetypesFileTypeMap;
 
 public class ApplicationModule extends AbstractModule {
 
@@ -16,6 +19,7 @@ public class ApplicationModule extends AbstractModule {
 	public void configure() {
 		bind(AccountService.class).to(AccountServiceImpl.class).in(Scopes.SINGLETON);
 		bind(SessionFilter.class).in(Scopes.SINGLETON);
+		bind(MimetypesFileTypeMap.class).in(Scopes.NO_SCOPE);
 	}
 
 	@Singleton
