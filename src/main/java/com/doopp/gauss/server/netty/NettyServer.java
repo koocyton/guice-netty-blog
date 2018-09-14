@@ -2,6 +2,7 @@ package com.doopp.gauss.server.netty;
 
 import com.doopp.gauss.server.handler.Http1RequestHandler;
 import com.doopp.gauss.server.application.ApplicationProperties;
+import com.doopp.gauss.server.handler.HttpStaticFileServerHandler;
 import com.doopp.gauss.server.handler.StaticFileResourceHandler;
 import com.doopp.gauss.server.handler.WebSocketFrameHandler;
 import com.google.inject.Injector;
@@ -13,9 +14,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import com.google.inject.Inject;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
-import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketServerCompressionHandler;
-import io.netty.handler.codec.http2.Http2ServerUpgradeCodec;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 
@@ -97,13 +95,14 @@ public class NettyServer {
                 // that adds support for writing a large data stream
                 pipeline.addLast(new ChunkedWriteHandler());
                 // static file
-                pipeline.addLast(injector.getInstance(StaticFileResourceHandler.class));
+                pipeline.addLast(injector.getInstance(HttpStaticFileServerHandler.class));
+                // pipeline.addLast(injector.getInstance(StaticFileResourceHandler.class));
                 // http request
                 pipeline.addLast(injector.getInstance(Http1RequestHandler.class));
                 // webSocket connect
-                pipeline.addLast(new WebSocketServerCompressionHandler());
-                pipeline.addLast(new WebSocketServerProtocolHandler(applicationProperties.s("server.webSocket"), null, true));
-                pipeline.addLast(injector.getInstance(WebSocketFrameHandler.class));
+                // pipeline.addLast(new WebSocketServerCompressionHandler());
+                // pipeline.addLast(new WebSocketServerProtocolHandler(applicationProperties.s("server.webSocket"), null, true));
+                // pipeline.addLast(injector.getInstance(WebSocketFrameHandler.class));
             }
         };
     }
@@ -113,7 +112,8 @@ public class NettyServer {
         String jksSecret = applicationProperties.s("server.jks.secret");
 
         try {
-            FileInputStream jksInputStream = new FileInputStream("D:\\project\\guice-netty-mybatis\\application_server.jks");
+            FileInputStream jksInputStream = applicationProperties.r("server.jks.file");
+            // FileInputStream jksInputStream = new FileInputStream("D:\\project\\guice-netty-mybatis\\application_server.jks");
             KeyStore keyStore = KeyStore.getInstance("JKS");
             keyStore.load(jksInputStream, jksPassword.toCharArray());
             KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());

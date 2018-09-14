@@ -1,8 +1,8 @@
 package com.doopp.gauss.server.application;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 public class ApplicationProperties extends Properties {
@@ -17,6 +17,10 @@ public class ApplicationProperties extends Properties {
         catch(IOException e) {
             System.out.print("\n Can not load properties file -> " + propertiesConfig);
         }
+    }
+
+    public FileInputStream r(String key) throws FileNotFoundException {
+        return new FileInputStream(this.getProperty(key));
     }
 
     public String s(String key) {

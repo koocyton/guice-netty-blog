@@ -9,6 +9,7 @@ import java.io.OutputStreamWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.util.*;
 

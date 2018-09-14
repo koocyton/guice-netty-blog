@@ -43,6 +43,8 @@ dependencies {
     // logger
     compile 'org.slf4j:slf4j-api:1.7.25'
     compile 'org.slf4j:slf4j-log4j12:1.7.25'
+
+    // compile 'javax.activation:activation:1.1.1'
 }
 
 tasks.withType(JavaCompile) {
