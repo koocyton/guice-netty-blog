@@ -1,5 +1,6 @@
 package com.doopp.gauss.server.handler;
 
+import com.doopp.gauss.common.util.JarToolUtil;
 import com.google.inject.Inject;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -25,6 +26,8 @@ import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedFile;
 import io.netty.util.CharsetUtil;
 import io.netty.util.internal.SystemPropertyUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.activation.MimetypesFileTypeMap;
 import java.io.File;
@@ -92,6 +95,8 @@ import static io.netty.handler.codec.http.HttpVersion.*;
  */
 public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
+    private static Logger logger = LoggerFactory.getLogger(HttpStaticFileServerHandler.class);
+
     @Inject
     private MimetypesFileTypeMap mimetypesFileTypeMap;
 
@@ -111,10 +116,12 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         //     return;
         // }
 
+        System.out.println(System.getProperty("sun.java.command") + " path : " + JarToolUtil.getJarPath());
         final String uri = request.uri();
         final URL url = getClass().getResource("/public" + uri);
         if (url == null) {
             ctx.fireChannelRead(request.retain());
+            logger.error("1");
             return;
         }
 
@@ -122,6 +129,7 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         // final String path = sanitizeUri(uri);
         if (path == null) {
             ctx.fireChannelRead(request.retain());
+            logger.error("2");
             // sendError(ctx, FORBIDDEN);
             return;
         }
@@ -129,6 +137,7 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         File file = new File(path);
         if (file.isHidden() || !file.exists()) {
             ctx.fireChannelRead(request.retain());
+            logger.error(path + " / " + file.isHidden() + " / " + !file.exists() + " / " + file.isDirectory() + " / " + file.isFile());
             // sendError(ctx, NOT_FOUND);
             return;
         }
@@ -144,9 +153,15 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         }
 
         if (!file.isFile()) {
+            logger.error("4");
             sendError(ctx, FORBIDDEN);
             return;
         }
+
+        this.buildResponse(ctx, request, file);
+    }
+
+    private void buildResponse(ChannelHandlerContext ctx, FullHttpRequest request, File file) throws Exception {
 
         // Cache Validation
         String ifModifiedSince = request.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
@@ -189,13 +204,13 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
         ChannelFuture lastContentFuture;
         if (ctx.pipeline().get(SslHandler.class) == null) {
             sendFileFuture =
-                    ctx.write(new DefaultFileRegion(raf.getChannel(), 0, fileLength), ctx.newProgressivePromise());
+                ctx.write(new DefaultFileRegion(raf.getChannel(), 0, fileLength), ctx.newProgressivePromise());
             // Write the end marker.
             lastContentFuture = ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
         } else {
             sendFileFuture =
-                    ctx.writeAndFlush(new HttpChunkedInput(new ChunkedFile(raf, 0, fileLength, 8192)),
-                            ctx.newProgressivePromise());
+                ctx.writeAndFlush(new HttpChunkedInput(new ChunkedFile(raf, 0, fileLength, 8192)),
+                    ctx.newProgressivePromise());
             // HttpChunkedInput will write the end marker (LastHttpContent) for us.
             lastContentFuture = sendFileFuture;
         }

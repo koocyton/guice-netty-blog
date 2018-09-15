@@ -85,8 +85,8 @@ public class NettyServer {
                 // that adds support for writing a large data stream
                 pipeline.addLast(new ChunkedWriteHandler());
                 // static file
-                // pipeline.addLast(injector.getInstance(HttpStaticFileServerHandler.class));
-                pipeline.addLast(injector.getInstance(HttpStaticFileResourceHandler.class));
+                pipeline.addLast(injector.getInstance(HttpStaticFileServerHandler.class));
+                // pipeline.addLast(injector.getInstance(HttpStaticFileResourceHandler.class));
                 // http request
                 pipeline.addLast(injector.getInstance(Http1RequestHandler.class));
             }
