@@ -2,6 +2,7 @@ package com.doopp.gauss.server.netty;
 
 import com.doopp.gauss.server.handler.Http1RequestHandler;
 import com.doopp.gauss.server.application.ApplicationProperties;
+import com.doopp.gauss.server.handler.HttpStaticFileResourceHandler;
 import com.doopp.gauss.server.handler.HttpStaticFileServerHandler;
 import com.google.inject.Injector;
 import io.netty.bootstrap.ServerBootstrap;
@@ -19,7 +20,7 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.security.KeyStore;
 
 public class NettyServer {
@@ -84,7 +85,8 @@ public class NettyServer {
                 // that adds support for writing a large data stream
                 pipeline.addLast(new ChunkedWriteHandler());
                 // static file
-                pipeline.addLast(injector.getInstance(HttpStaticFileServerHandler.class));
+                // pipeline.addLast(injector.getInstance(HttpStaticFileServerHandler.class));
+                pipeline.addLast(injector.getInstance(HttpStaticFileResourceHandler.class));
                 // http request
                 pipeline.addLast(injector.getInstance(Http1RequestHandler.class));
             }
@@ -96,8 +98,7 @@ public class NettyServer {
         String jksSecret = applicationProperties.s("server.jks.secret");
 
         try {
-            FileInputStream jksInputStream = applicationProperties.r("server.jks.file");
-            // FileInputStream jksInputStream = new FileInputStream("D:\\project\\guice-netty-mybatis\\application_server.jks");
+            InputStream jksInputStream = applicationProperties.r("server.jks.file");
             KeyStore keyStore = KeyStore.getInstance("JKS");
             keyStore.load(jksInputStream, jksPassword.toCharArray());
             KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());

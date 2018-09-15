@@ -329,7 +329,7 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
      *
      * @param ctx Context
      */
-    private static void sendNotModified(ChannelHandlerContext ctx) {
+    public static void sendNotModified(ChannelHandlerContext ctx) {
         FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, NOT_MODIFIED);
         setDateHeader(response);
 

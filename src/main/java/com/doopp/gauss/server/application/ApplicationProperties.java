@@ -19,8 +19,12 @@ public class ApplicationProperties extends Properties {
         }
     }
 
-    public FileInputStream r(String key) throws FileNotFoundException {
-        return new FileInputStream(this.getProperty(key));
+    public InputStream r(String key) throws FileNotFoundException {
+        // System.out.println(">>> path : " + getClass().getResource(this.getProperty(key)));
+        // String path = getClass().getResource(this.getProperty(key)).getPath();
+        // System.out.println(">>> path : " + path);
+        // return new FileInputStream(path);
+        return getClass().getResourceAsStream(this.getProperty(key));
     }
 
     public String s(String key) {
