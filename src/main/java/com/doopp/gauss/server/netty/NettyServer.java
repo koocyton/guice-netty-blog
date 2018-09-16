@@ -2,7 +2,6 @@ package com.doopp.gauss.server.netty;
 
 import com.doopp.gauss.server.handler.Http1RequestHandler;
 import com.doopp.gauss.server.application.ApplicationProperties;
-import com.doopp.gauss.server.handler.HttpStaticFileResourceHandler;
 import com.doopp.gauss.server.handler.HttpStaticFileServerHandler;
 import com.google.inject.Injector;
 import io.netty.bootstrap.ServerBootstrap;

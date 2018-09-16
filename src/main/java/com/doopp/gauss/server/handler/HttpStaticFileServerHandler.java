@@ -11,17 +11,7 @@ import io.netty.channel.ChannelProgressiveFuture;
 import io.netty.channel.ChannelProgressiveFutureListener;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpChunkedInput;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpUtil;
-import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.handler.codec.http.*;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedFile;
 import io.netty.util.CharsetUtil;
@@ -30,10 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.activation.MimetypesFileTypeMap;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.RandomAccessFile;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
@@ -106,6 +94,75 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
+        String filePath = getClass().getResource("").getPath();
+        // logger.error(">>> {}", filePath);
+        if (filePath.contains(".jar!")) {
+            this.readFileByJarPath(ctx, request);
+        }
+        else {
+            this.readFileBySysPath(ctx, request);
+        }
+    }
+
+    private void readFileByJarPath(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
+        // 取出 request uri 对应调用的 controller 和 method
+        URI uri = URI.create(request.uri());
+        // uri path
+        String requirePath = uri.getPath();
+
+        // resource/public
+        InputStream ins = getClass().getResourceAsStream("/public" + requirePath);
+        // 找不到文件的话
+        if (ins == null) {
+            ctx.fireChannelRead(request.retain());
+            return;
+        }
+
+        // Cache Validation
+        String ifModifiedSince = request.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
+        if (ifModifiedSince != null && !ifModifiedSince.isEmpty()) {
+            SimpleDateFormat dateFormatter = new SimpleDateFormat(HTTP_DATE_FORMAT, Locale.US);
+            Date ifModifiedSinceDate = dateFormatter.parse(ifModifiedSince);
+
+            // Only compare up to the second because the datetime format we send to the client
+            // does not have milliseconds
+            long ifModifiedSinceDateSeconds = ifModifiedSinceDate.getTime() / 1000;
+            long fileLastModifiedSeconds = new File(JarToolUtil.getJarPath()).lastModified() / 1000;
+            if (ifModifiedSinceDateSeconds == fileLastModifiedSeconds) {
+                sendNotModified(ctx);
+                return;
+            }
+        }
+
+        // 读取文件
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        byte[] bs = new byte[1024];
+        int len;
+        while ((len = ins.read(bs)) != -1) {
+            bout.write(bs, 0, len);
+        }
+        ins.close();
+        ByteBuf buf = Unpooled.wrappedBuffer(bout.toByteArray()).retain();
+
+        // 返回
+        DefaultFullHttpResponse httpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, buf);
+        HttpHeaders headers = httpResponse.headers();
+        if (HttpUtil.isKeepAlive(request)) {
+            headers.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+        }
+        setContentTypeHeader(httpResponse, requirePath, this.mimetypesFileTypeMap);
+        setDateAndCacheHeaders(httpResponse, new File(JarToolUtil.getJarPath()));
+        // headers.set(HttpHeaderNames.CONTENT_TYPE, contentType(requirePath.substring(requirePath.lastIndexOf(".") + 1)));
+        // headers.set(HttpHeaderNames.SERVER, "Netty 1.1");
+        headers.set(HttpHeaderNames.CONTENT_LENGTH, buf.readableBytes());
+        ctx.write(httpResponse);
+        ChannelFuture future = ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+        if (!HttpUtil.isKeepAlive(request)) {
+            future.addListener(ChannelFutureListener.CLOSE);
+        }
+    }
+
+    private void readFileBySysPath(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
         // if (!request.decoderResult().isSuccess()) {
         //     sendError(ctx, BAD_REQUEST);
         //     return;
@@ -158,11 +215,6 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
             return;
         }
 
-        this.buildResponse(ctx, request, file);
-    }
-
-    private void buildResponse(ChannelHandlerContext ctx, FullHttpRequest request, File file) throws Exception {
-
         // Cache Validation
         String ifModifiedSince = request.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
         if (ifModifiedSince != null && !ifModifiedSince.isEmpty()) {
@@ -190,7 +242,7 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
 
         HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
         HttpUtil.setContentLength(response, fileLength);
-        setContentTypeHeader(response, file, this.mimetypesFileTypeMap);
+        setContentTypeHeader(response, file.getPath(), this.mimetypesFileTypeMap);
         setDateAndCacheHeaders(response, file);
         if (HttpUtil.isKeepAlive(request)) {
             response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
@@ -391,10 +443,10 @@ public class HttpStaticFileServerHandler extends SimpleChannelInboundHandler<Ful
      * Sets the content type header for the HTTP Response
      *
      * @param response HTTP response
-     * @param file     file to extract content type
+     * @param filePath file path
      */
-    private static void setContentTypeHeader(HttpResponse response, File file, MimetypesFileTypeMap mimetypesFileTypeMap) {
+    private static void setContentTypeHeader(HttpResponse response, String filePath, MimetypesFileTypeMap mimetypesFileTypeMap) {
         // MimetypesFileTypeMap mimetypesFileTypeMap = new MimetypesFileTypeMap();
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, mimetypesFileTypeMap.getContentType(file.getPath()));
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, mimetypesFileTypeMap.getContentType(filePath));
     }
 }

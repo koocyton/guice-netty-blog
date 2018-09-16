@@ -8,6 +8,10 @@ import java.io.File;
  */
 public class JarToolUtil
 {
+    public static boolean runJar() {
+        return System.getProperty("sun.java.command").contains(".jar");
+    }
+
     /**
      * 获取jar绝对路径
      *
